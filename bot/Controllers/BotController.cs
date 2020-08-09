@@ -1,33 +1,32 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Bot.Builder;
-using Microsoft.Bot.Schema;
-namespace Microsoft.BotBuilderSamples.Bots
-
-
+using Microsoft.Bot.Builder.Integration.AspNet.Core;
+namespace Microsoft.BotBuilderSamples.Controllers
 {
-  
-    public class EchoBot : ActivityHandler
+    // This ASP Controller is created to handle a request. Dependency Injection will provide the Adapter and IBot
+    // implementation at runtime. Multiple different IBot implementations running at different endpoints can be
+    // achieved by specifying a more specific type for the bot constructor argument.
+    [Route("api/messages")]
+    [ApiController]
+    public class BotController : ControllerBase
     {
-        protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
+        private readonly IBotFrameworkHttpAdapter Adapter;
+        private readonly IBot Bot;
+        public BotController(IBotFrameworkHttpAdapter adapter, IBot bot)
         {
-            var replyText = $"Echo: {turnContext.Activity.Text}";
-            await turnContext.SendActivityAsync(MessageFactory.Text(replyText, replyText), cancellationToken);
+            Adapter = adapter;
+            Bot = bot;
         }
-        protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
+        [HttpPost, HttpGet]
+        public async Task PostAsync()
         {
-            var welcomeText = $"Hola Innovador!";
-            foreach (var member in membersAdded)
-            {
-                if (member.Id != turnContext.Activity.Recipient.Id)
-                {
-                    await turnContext.SendActivityAsync(MessageFactory.Text(welcomeText, welcomeText), cancellationToken);
-                }
-            }
+            // Delegate the processing of the HTTP POST to the adapter.
+            // The adapter will invoke the bot.
+            await Adapter.ProcessAsync(Request, Response, Bot);
         }
     }
 }
